@@ -20,6 +20,7 @@ namespace RosSharp.RosBridgeClient
     public class OdometrySubscriber : UnitySubscriber<MessageTypes.Nav.Odometry>
     {
         public Transform PublishedTransform;
+        public float lerpTime = 0.1f;
 
         private Vector3 position;
         private Quaternion rotation;
@@ -44,8 +45,11 @@ namespace RosSharp.RosBridgeClient
         }
         private void ProcessMessage()
         {
-            PublishedTransform.position = position;
-            PublishedTransform.rotation = rotation;
+            //PublishedTransform.position = position;
+            //PublishedTransform.rotation = rotation;
+
+            PublishedTransform.position = Vector3.Lerp(PublishedTransform.position, position, Time.deltaTime / lerpTime);
+            PublishedTransform.rotation = Quaternion.Lerp(PublishedTransform.rotation, rotation, Time.deltaTime / lerpTime);
         }
 
         private Vector3 GetPosition(MessageTypes.Nav.Odometry message)

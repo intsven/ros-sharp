@@ -21,7 +21,7 @@ namespace RosSharp.RosBridgeClient
     {        
         public string Name;
         
-        public float Read()
+        public virtual float Read()
         {
             return Input.GetAxis(Name);              
         }

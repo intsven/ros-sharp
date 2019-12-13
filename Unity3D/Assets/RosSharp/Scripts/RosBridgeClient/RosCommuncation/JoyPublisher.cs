@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+using System.Threading;
+using Unity.Jobs;
+
 namespace RosSharp.RosBridgeClient
 {
     public class JoyPublisher : UnityPublisher<MessageTypes.Sensor.Joy>
@@ -24,22 +27,27 @@ namespace RosSharp.RosBridgeClient
 
         private MessageTypes.Sensor.Joy message;
 
+
         protected override void Start()
         {
             base.Start();
             InitializeGameObject();
             InitializeMessage();
+
+            PublishThread thread = new PublishThread(GetComponent<RosConnector>().RosSocket, publicationId);
+            Thread t = new Thread(new ThreadStart(thread.ThreadProc));
+            t.Start();
         }
 
         private void Update()
         {
             UpdateMessage();
-        }      
+        }
 
         private void InitializeGameObject()
         {
             JoyAxisReaders = GetComponents<JoyAxisReader>();
-            JoyButtonReaders = GetComponents<JoyButtonReader>();            
+            JoyButtonReaders = GetComponents<JoyButtonReader>();
         }
 
         private void InitializeMessage()
@@ -56,11 +64,42 @@ namespace RosSharp.RosBridgeClient
 
             for (int i = 0; i < JoyAxisReaders.Length; i++)
                 message.axes[i] = JoyAxisReaders[i].Read();
-            
+
             for (int i = 0; i < JoyButtonReaders.Length; i++)
                 message.buttons[i] = (JoyButtonReaders[i].Read() ? 1 : 0);
 
-            Publish(message);
+            //Publish(message);
+            PublishThread.message = message;
+
+            /*
+            PublishJob job = new PublishJob();
+            job.message = message;
+            job.publisher = this;
+            job.Schedule(); */
         }
+
+        public struct PublishThread
+        {
+            public static MessageTypes.Sensor.Joy message;
+            public RosSocket rosSocket;
+            public string publicationId;
+
+            public PublishThread(RosSocket rosSocket, string publicationId)
+            {
+                this.rosSocket = rosSocket;
+                this.publicationId = publicationId;
+            }
+
+            public void ThreadProc()
+            {
+                while(true)
+                {
+                    rosSocket.Publish(publicationId, message);
+                    Thread.Sleep(10);
+                }
+                    
+            }
+        }
+
     }
 }
